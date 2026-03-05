@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="manifest.json" />
+
+    <title>FloodGuard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
+    <style>
+      :root {
+        --p: #0056b3;
+        --d: #dc3545;
+        --s: #28a745;
+        --bg: #f4f7f6;
+        --hi: #ffeded;
+      }
+      body {
+        font-family: sans-serif;
+        background: var(--bg);
+        margin: 0;
+        padding: 20px;
+      }
+      .wrap {
+        max-width: 500px;
+        margin: auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        color: var(--p);
+        text-align: center;
+        margin-top: 10px;
+      }
+      .row {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+      input,
+      select {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      input {
+        flex: 2;
+        min-width: 150px;
+      }
+      select {
+        flex: 1;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-weight: 600;
+        transition: 0.2s;
+      }
+      .add-btn {
+        background: var(--p);
+        color: #fff;
+        width: 100%;
+        margin-top: 5px;
+      }
+      .add-btn:hover {
+        background: #004494;
+      }
+      .list {
+        list-style: none;
+        padding: 0;
+      }
+      .item {
+        background: #fff;
+        border: 1px solid #eee;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        position: relative;
+      }
+      .Prio-High {
+        border-left: 5px solid var(--d);
+        background: var(--hi);
+      }
+      .Prio-Med {
+        border-left: 5px solid #ffc107;
+      }
+      .Prio-Low {
+        border-left: 5px solid var(--s);
+      }
+      .badge {
+        font-size: 10px;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 10px;
+        color: #fff;
+        margin-bottom: 8px;
+        display: inline-block;
+      }
+      .b-High {
+        background: var(--d);
+      }
+      .b-Med {
+        background: #ffc107;
+        color: #000;
+      }
+      .b-Low {
+        background: var(--s);
+      }
+      .acts {
+        display: flex;
+        gap: 5px;
+        margin-top: 10px;
+      }
+      .done-btn {
+        background: var(--s);
+        color: #fff;
+      }
+      .edit-btn {
+        background: #6c757d;
+        color: #fff;
+      }
+      .del-btn {
+        background: var(--d);
+        color: #fff;
+      }
+      .done-item {
+        opacity: 0.5;
+        border-left: 5px solid #6c757d !important;
+        background: #eee !important;
+      }
+      h3 i {
+        margin-right: 8px;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h2>
+        <i class="fa-solid fa-cloud-showers-heavy"></i> Flood Risk Managment
+      </h2>
+
+      <div class="row">
+        <input type="text" id="inp" placeholder="Describe risk..." />
+        <select id="prio">
+          <option value="Low">Low</option>
+          <option value="Med">Med</option>
+          <option value="High">High</option>
+        </select>
+        <input type="hidden" id="e_id" />
+        <button id="main-btn" class="add-btn" onclick="add()">
+          <i class="fa-solid fa-paper-plane"></i> Submit Report
+        </button>
+      </div>
+
+      <h3><i class="fa-solid fa-triangle-exclamation"></i> Active Issues</h3>
+      <ul id="list" class="list"></ul>
+
+      <hr />
+      <h3><i class="fa-solid fa-circle-check"></i> Resolved</h3>
+      <ul id="res_list" class="list"></ul>
+    </div>
+
+    <script>
+      let db = JSON.parse(localStorage.getItem("f_act")) || [];
+      let res = JSON.parse(localStorage.getItem("f_res")) || [];
+
+      function add() {
+        const txt = document.getElementById("inp");
+        const pr = document.getElementById("prio");
+        const eid = document.getElementById("e_id");
+        if (!txt.value.trim()) return;
+
+        if (eid.value) {
+          const i = db.findIndex((x) => x.id == eid.value);
+          db[i].val = txt.value;
+          db[i].p = pr.value;
+          eid.value = "";
+          document.getElementById("main-btn").innerHTML =
+            '<i class="fa-solid fa-paper-plane"></i> Submit Report';
+        } else {
+          db.push({
+            id: Date.now(),
+            val: txt.value,
+            p: pr.value,
+            dt: new Date().toLocaleDateString(),
+          });
+        }
+        sync();
+        txt.value = "";
+      }
+
+      function edit(id) {
+        const x = db.find((x) => x.id === id);
+        document.getElementById("inp").value = x.val;
+        document.getElementById("prio").value = x.p;
+        document.getElementById("e_id").value = x.id;
+        document.getElementById("main-btn").innerHTML =
+          '<i class="fa-solid fa-pen-to-square"></i> Update Entry';
+      }
+
+      function move(id) {
+        const i = db.findIndex((x) => x.id === id);
+        res.push(db[i]);
+        db.splice(i, 1);
+        sync();
+      }
+
+      function del(id, type) {
+        if (type === "a") db = db.filter((x) => x.id !== id);
+        else res = res.filter((x) => x.id !== id);
+        sync();
+      }
+
+      function sync() {
+        localStorage.setItem("f_act", JSON.stringify(db));
+        localStorage.setItem("f_res", JSON.stringify(res));
+        show();
+      }
+
+      function show() {
+        const al = document.getElementById("list");
+        const rl = document.getElementById("res_list");
+        al.innerHTML = "";
+        rl.innerHTML = "";
+
+        db.sort((a, b) => (a.p === "High" ? -1 : 1)).forEach((x) => {
+          al.innerHTML += `
+                <li class="item Prio-${x.p}">
+                    <span class="badge b-${x.p}"><i class="fa-solid fa-circle-exclamation"></i> ${x.p}</span><br>
+                    <strong>${x.val}</strong><br><small><i class="fa-regular fa-calendar"></i> ${x.dt}</small>
+                    <div class="acts">
+                        <button class="done-btn" onclick="move(${x.id})"><i class="fa-solid fa-check"></i> Resolved </button>
+                        <button class="edit-btn" onclick="edit(${x.id})"><i class="fa-solid fa-pen"></i></button>
+                        <button class="del-btn" onclick="del(${x.id}, 'a')"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </li>`;
+        });
+
+        res.forEach((x) => {
+          rl.innerHTML += `
+                <li class="item done-item">
+                    <strong>${x.val}</strong><br><small><i class="fa-solid fa-clock-rotate-left"></i> Resolved: ${x.dt}</small>
+                    <div class="acts">
+                        <button class="del-btn" onclick="del(${x.id}, 'r')"><i class="fa-solid fa-trash"></i> Delete</button>
+                    </div>
+                </li>`;
+        });
+      }
+      show();
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/service-worker.js")
+          .then(() => {
+            console.log("ayos! rehistro as service worker");
+          })
+          .catch((error) => {
+            console.log("Registration failed: ", error);
+          });
+      }
+    </script>
+  </body>
+</html>
